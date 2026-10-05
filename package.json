@@ -23,7 +23,8 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "create-owner": "node scripts/create-owner.mjs",
-    "db:types": "supabase gen types typescript --local > src/types/database.ts"
+    "db:types": "bash scripts/gen-types.sh",
+    "db:types:url": "bash scripts/gen-types.sh --url"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
