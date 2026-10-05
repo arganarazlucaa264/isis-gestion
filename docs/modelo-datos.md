@@ -24,11 +24,11 @@ de desarrollo y, si el diseño cambia al implementarla, **este documento se actu
 
 ### 1 Seguridad y configuración
 
-| Tabla          | Campos clave                                                                                   |
-| -------------- | ---------------------------------------------------------------------------------------------- |
-| `profiles`     | `id` (= `auth.users.id`), `full_name`, `role` (enum `app_role`), `active`, `created_at`        |
-| `app_settings` | `key` PK, `value` jsonb (ej. `allow_negative_stock=false`, `store_name`, `sale_number_prefix`) |
-| `audit_log`    | `id`, `table_name`, `record_id`, `action`, `old_data`, `new_data`, `user_id`, `at`             |
+| Tabla          | Campos clave                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`     | `id` (= `auth.users.id`), `email` (copia sincronizada), `full_name`, `role` (enum `app_role`), `active`, `created_at`, `updated_at` |
+| `app_settings` | `key` PK, `value` jsonb (ej. `allow_negative_stock=false`, `store_name`, `sale_number_prefix`)                                      |
+| `audit_log`    | `id`, `table_name`, `record_id`, `action`, `old_data`, `new_data`, `user_id`, `at`                                                  |
 
 ### 2 Catálogo
 

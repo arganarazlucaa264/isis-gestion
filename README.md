@@ -8,7 +8,7 @@ Stack: React + Vite + TypeScript · Supabase (PostgreSQL, Auth, RLS).
 
 ## Estado
 
-**Etapa 0 (fundación) completa.** Todavía no hay funcionalidad de negocio.
+**Etapas 0 (fundación) y 1 (autenticación, roles y RLS base) completas.** Todavía no hay funcionalidad de negocio.
 Plan de etapas en [docs/arquitectura.md](docs/arquitectura.md) (sección 13).
 
 ## Requisitos
@@ -24,6 +24,20 @@ cp .env.example .env.local   # completar con los valores de `npm run db:start` /
 npm run db:start             # levanta Supabase local (requiere Docker)
 npm run dev
 ```
+
+### Crear el dueño inicial
+
+El registro público está desactivado. El primer usuario (dueño) se crea una vez, desde una terminal
+de confianza, con la service_role key (que **nunca** va al frontend ni al repo):
+
+```bash
+# local: la key sale de `npx supabase status`
+SUPABASE_SERVICE_ROLE_KEY=... npm run create-owner -- dueno@isis.com 'una-clave-larga' 'Nombre Apellido'
+# producción: además SUPABASE_URL=https://<proyecto>.supabase.co
+```
+
+Después el dueño crea al resto desde la pantalla **Usuarios** (usa la Edge Function `create-user`,
+que verifica que quien llama sea dueño). Despliegue: `npx supabase functions deploy create-user`.
 
 ## Scripts
 

@@ -10,3 +10,4 @@ consecuencias. Una decisión no se edita: si cambia, se crea un ADR nuevo que la
 | [0003](./0003-costos-en-tabla-aparte.md) | Costos en tablas separadas por seguridad (RLS)         | Aceptada |
 | [0004](./0004-stack-y-herramientas.md)   | Stack y herramientas del frontend                      | Aceptada |
 | [0005](./0005-alcance-inicial.md)        | Alcance inicial: un local, ARS, sin facturación fiscal | Aceptada |
+| [0006](./0006-auth-roles-bootstrap.md)   | Autenticación, roles y alta de usuarios                | Aceptada |
