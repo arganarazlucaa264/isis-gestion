@@ -241,17 +241,23 @@ function MovementsTable() {
                 ))}
               </tbody>
             </Table>
-            {rows.length >= limit && (
+            {rows.length >= limit && limit < 1000 && (
               <div className="p-3 text-center">
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setLimit(limit + 200)
+                    setLimit(Math.min(1000, limit + 300))
                   }}
                 >
                   Cargar más
                 </Button>
               </div>
+            )}
+            {rows.length >= 1000 && (
+              <p className="p-3 text-center text-xs text-bronze-600">
+                Se muestran los últimos 1000 movimientos. Para ver más, acotá el período o exportá a
+                Excel.
+              </p>
             )}
           </>
         )}

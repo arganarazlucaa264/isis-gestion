@@ -9,7 +9,7 @@ if [ "${1:-}" = "--url" ]; then
   : "${DB_URL:?Definí DB_URL}"
   npx supabase gen types typescript --db-url "$DB_URL" --schema public > src/types/database.ts
 else
-  npx supabase gen types typescript --local > src/types/database.ts
+  npx supabase gen types typescript --local --schema public > src/types/database.ts
 fi
 npx prettier --write --ignore-path /dev/null src/types/database.ts > /dev/null
 echo "src/types/database.ts regenerado"

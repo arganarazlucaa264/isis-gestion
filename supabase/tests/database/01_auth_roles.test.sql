@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(42);
 
 -- ---------------------------------------------------------------------------
 -- Usuarios de prueba (se insertan como superusuario; el trigger crea los perfiles)
@@ -161,6 +161,15 @@ reset role;
 -- 39-40
 select throws_ok($$update public.audit_log set table_name = 'x'$$, '42501', null, 'audit_log: UPDATE bloqueado por trigger');
 select throws_ok($$truncate public.audit_log$$, '42501', null, 'audit_log: TRUNCATE bloqueado por trigger');
+
+-- 41-42 · el email del perfil se sincroniza con auth.users
+update auth.users set email = 'dueno-nuevo@test.local' where id = '00000000-0000-0000-0000-0000000000a1';
+select is(
+  (select email from public.profiles where id = '00000000-0000-0000-0000-0000000000a1'),
+  'dueno-nuevo@test.local', 'al cambiar el email en auth.users se actualiza el perfil');
+select is(
+  (select email from public.profiles where id = '00000000-0000-0000-0000-0000000000a2'),
+  'owner2@test.local', 'y no se tocan los demás perfiles');
 
 select * from finish();
 rollback;

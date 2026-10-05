@@ -56,9 +56,20 @@ validado en `register_sale`.
   "Stock insuficiente"; el stock queda en 0 y `v_stock_audit` vacío).
 - Idempotencia de `register_sale` con `client_request_id` (más un lock por clave).
 
+## CORS de la Edge Function
+
+`create-user` solo devuelve `Access-Control-Allow-Origin` para los orígenes de `ALLOWED_ORIGINS`
+(por defecto, solo `localhost:5173`). El CORS no es la barrera de seguridad (la función exige un JWT de
+dueño y lo verifica contra la base), pero evita que otros sitios la invoquen desde un navegador.
+
+## Auditoría en solo lectura
+
+`supabase/checks/audit.sql` verifica en cualquier base (también la real) RLS, privilegios de `anon`/`authenticated`,
+ledgers inmutables, funciones internas, `search_path`, vistas y consistencia del stock. Debe devolver 0 filas. El CI
+la corre en cada cambio.
+
 ## Pendientes recomendados para producción
 
 - Activar MFA/CAPTCHA y políticas de contraseña en Supabase Auth.
-- Restringir el origen CORS de la Edge Function al dominio real.
 - Rotar las claves si alguna vez se compartieron; guardar `service_role` solo en secretos del servidor.
 - Backups programados y prueba de restauración.

@@ -27,6 +27,24 @@ if (!serviceKey) {
   process.exit(1)
 }
 
+// Evita el error clásico: usar la anon/publishable key en lugar de la service_role/secret key.
+function looksLikeServiceKey(key) {
+  if (key.startsWith('sb_secret_')) return true
+  if (key.startsWith('sb_publishable_')) return false
+  try {
+    const payload = JSON.parse(Buffer.from(key.split('.')[1] ?? '', 'base64url').toString())
+    return payload.role === 'service_role'
+  } catch {
+    return false
+  }
+}
+if (!looksLikeServiceKey(serviceKey)) {
+  console.error(
+    'SUPABASE_SERVICE_ROLE_KEY no parece una clave service_role / secret (¿pegaste la anon/publishable?)',
+  )
+  process.exit(1)
+}
+
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } })
 const { data, error } = await admin.auth.admin.createUser({
   email,

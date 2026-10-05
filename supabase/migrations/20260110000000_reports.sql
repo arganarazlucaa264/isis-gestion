@@ -100,7 +100,7 @@ begin
   from public.internal_sales_facts(p_from, p_to) f
   join public.v_variants_all v on v.variant_id = f.variant_id
   group by v.variant_id, v.sku, v.product_code, v.product_name, v.category_name, v.color_name, v.size_name
-  order by sum(f.qty) desc, v.product_name;
+  order by sum(f.qty) desc, v.product_name, v.variant_id;
 end;
 $$;
 
@@ -119,7 +119,7 @@ begin
   from public.internal_sales_facts(p_from, p_to) f
   join public.v_variants_all v on v.variant_id = f.variant_id
   group by coalesce(v.category_name, 'Sin categoría')
-  order by sum(f.revenue) desc;
+  order by sum(f.revenue) desc, 1;
 end;
 $$;
 
@@ -153,7 +153,7 @@ begin
     group by rt.refund_method_id
   ) r on r.payment_method_id = pm.id
   where pm.active or c.amount is not null or r.amount is not null
-  order by pm.sort_order;
+  order by pm.sort_order, pm.id;
 end;
 $$;
 
@@ -196,7 +196,7 @@ begin
               else 'ok' end
   from public.v_variants_all v
   where v.active and v.product_active
-  order by v.product_name, v.color_name, v.size_order;
+  order by v.product_name, v.color_name, v.size_order, v.variant_id;
 end;
 $$;
 
@@ -218,7 +218,7 @@ begin
   join public.purchases p on p.supplier_id = s.id and p.status = 'received'
        and p.purchase_date between p_from and p_to
   group by s.id, s.name
-  order by sum(p.total) desc;
+  order by sum(p.total) desc, s.id;
 end;
 $$;
 
@@ -248,7 +248,7 @@ begin
   group by s.id, s.name
   having coalesce((select sum(l.amount) from public.supplier_ledger l where l.supplier_id = s.id), 0) <> 0
       or count(p.id) > 0
-  order by 3 desc;
+  order by 3 desc, s.id;
 end;
 $$;
 
@@ -267,7 +267,7 @@ begin
   join public.expense_categories c on c.id = e.category_id
   where e.voided_at is null and e.expense_date between p_from and p_to
   group by c.name
-  order by sum(e.amount) desc;
+  order by sum(e.amount) desc, c.name;
 end;
 $$;
 

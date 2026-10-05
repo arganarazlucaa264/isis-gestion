@@ -1,4 +1,4 @@
-import { unwrap, unwrapAs } from '@/lib/api'
+import { fetchAll, unwrap, unwrapAs } from '@/lib/api'
 import { rpc } from '@/lib/rpc'
 import { supabase } from '@/lib/supabase'
 import type { CashMethodTotal, CashMovementKind, CashSessionView, Row } from '@/types/db'
@@ -33,14 +33,16 @@ export async function listOpenSessions(): Promise<CashSessionView[]> {
 }
 
 export async function listSessions(from: string, to: string): Promise<CashSessionView[]> {
-  return unwrap(
-    await supabase
+  return fetchAll<CashSessionView>((a, b) =>
+    supabase
       .from('v_cash_sessions')
       .select('*')
       .gte('opened_at', `${from}T00:00:00-03:00`)
       .lt('opened_at', `${nextDay(to)}T00:00:00-03:00`)
-      .order('opened_at', { ascending: false }),
-  ) as unknown as CashSessionView[]
+      .order('opened_at', { ascending: false })
+      .order('id')
+      .range(a, b),
+  )
 }
 
 function nextDay(iso: string): string {

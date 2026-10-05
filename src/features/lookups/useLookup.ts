@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { unwrap } from '@/lib/api'
+import { fetchAll } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import type { Row } from '@/types/db'
 
@@ -31,8 +31,10 @@ export function useLookup<T extends LookupTable>(table: T) {
   return useQuery({
     queryKey: ['lookup', table],
     staleTime: 5 * 60_000,
-    queryFn: async (): Promise<Row<T>[]> =>
-      unwrap(await supabase.from(table).select('*').order(ORDER[table])) as unknown as Row<T>[],
+    queryFn: () =>
+      fetchAll<Row<T>>((a, b) =>
+        supabase.from(table).select('*').order(ORDER[table]).order('id').range(a, b),
+      ),
   })
 }
 

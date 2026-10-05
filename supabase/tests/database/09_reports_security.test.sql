@@ -46,7 +46,7 @@ select public.register_sale(
   gen_random_uuid());
 select public.register_return(
   (select id from public.sales order by number limit 1),
-  format('[{"sale_item_id":"%s","quantity":1}]', (select id from public.sale_items order by id limit 1))::jsonb,
+  format('[{"sale_item_id":"%s","quantity":1}]', (select i.id from public.sale_items i where i.sale_id = (select id from public.sales order by number limit 1) limit 1))::jsonb,
   (select id from public.payment_methods where code = 'cash'), 'Cambio de opinión', true);
 
 select public.t_as('00000000-0000-0000-0000-0000000000a1');
