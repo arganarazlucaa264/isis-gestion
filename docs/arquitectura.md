@@ -22,13 +22,13 @@ React + Vite + TS  <--HTTPS-->  Supabase
  - SheetJS/ExcelJS (xlsx)        Edge Function (solo alta de usuarios)
 ```
 
-| Capa | Responsabilidad |
-|---|---|
-| React | UI, validación de formularios, lectura/parseo de Excel, generación de archivos Excel |
-| PostgREST | Lecturas (listados, búsquedas, reportes) filtradas por RLS |
-| RPC (PL/pgSQL) | Todas las escrituras con reglas de negocio, en una transacción |
-| Triggers | Mantener `stock_levels`, bloquear UPDATE/DELETE en ledgers, auditoría |
-| Edge Function | Crear usuarios con la service key, que nunca llega al navegador |
+| Capa           | Responsabilidad                                                                      |
+| -------------- | ------------------------------------------------------------------------------------ |
+| React          | UI, validación de formularios, lectura/parseo de Excel, generación de archivos Excel |
+| PostgREST      | Lecturas (listados, búsquedas, reportes) filtradas por RLS                           |
+| RPC (PL/pgSQL) | Todas las escrituras con reglas de negocio, en una transacción                       |
+| Triggers       | Mantener `stock_levels`, bloquear UPDATE/DELETE en ledgers, auditoría                |
+| Edge Function  | Crear usuarios con la service key, que nunca llega al navegador                      |
 
 **Stack concreto:** TypeScript estricto con tipos generados (`supabase gen types`); migraciones con Supabase CLI, `seed.sql` y tests SQL con pgTAP; Vitest para lógica del frontend; Playwright más adelante para flujos críticos; Tailwind con componentes propios; TanStack Query para estado del servidor y Context para el carrito del POS.
 
@@ -64,81 +64,81 @@ isis-gestion/
 
 ### 3.1 Seguridad y configuración
 
-| Tabla | Campos clave |
-|---|---|
-| `profiles` | `id` (= `auth.users.id`), `full_name`, `role` (enum `app_role`), `active`, `created_at` |
+| Tabla          | Campos clave                                                                                   |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `profiles`     | `id` (= `auth.users.id`), `full_name`, `role` (enum `app_role`), `active`, `created_at`        |
 | `app_settings` | `key` PK, `value` jsonb (ej. `allow_negative_stock=false`, `store_name`, `sale_number_prefix`) |
-| `audit_log` | `id`, `table_name`, `record_id`, `action`, `old_data`, `new_data`, `user_id`, `at` |
+| `audit_log`    | `id`, `table_name`, `record_id`, `action`, `old_data`, `new_data`, `user_id`, `at`             |
 
 ### 3.2 Catálogo
 
-| Tabla | Campos clave |
-|---|---|
-| `categories` | `id`, `name`, `parent_id`, `active` |
-| `brands` | `id`, `name`, `active` |
-| `colors` | `id`, `name` (único), `hex` |
-| `sizes` | `id`, `name` (S, M, 38...), `size_group`, `sort_order` |
-| `products` (modelo) | `id`, `code` (único), `name`, `description`, `category_id`, `brand_id`, `supplier_id`, `active` |
-| `product_variants` | `id`, `product_id`, `color_id`, `size_id`, **`sku`** (único), **`ean`** (texto, único si no es nulo), `price`, `min_stock`, `active`. `UNIQUE(product_id, color_id, size_id)` |
-| `variant_costs` | `variant_id` PK, `last_cost`, `avg_cost`, `updated_at` |
-| `price_history` | `id`, `variant_id`, `old_price`, `new_price`, `old_cost`, `new_cost`, `changed_by`, `changed_at` |
+| Tabla               | Campos clave                                                                                                                                                                  |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `categories`        | `id`, `name`, `parent_id`, `active`                                                                                                                                           |
+| `brands`            | `id`, `name`, `active`                                                                                                                                                        |
+| `colors`            | `id`, `name` (único), `hex`                                                                                                                                                   |
+| `sizes`             | `id`, `name` (S, M, 38...), `size_group`, `sort_order`                                                                                                                        |
+| `products` (modelo) | `id`, `code` (único), `name`, `description`, `category_id`, `brand_id`, `supplier_id`, `active`                                                                               |
+| `product_variants`  | `id`, `product_id`, `color_id`, `size_id`, **`sku`** (único), **`ean`** (texto, único si no es nulo), `price`, `min_stock`, `active`. `UNIQUE(product_id, color_id, size_id)` |
+| `variant_costs`     | `variant_id` PK, `last_cost`, `avg_cost`, `updated_at`                                                                                                                        |
+| `price_history`     | `id`, `variant_id`, `old_price`, `new_price`, `old_cost`, `new_cost`, `changed_by`, `changed_at`                                                                              |
 
 **El costo va en una tabla aparte** porque RLS filtra filas, no columnas, y en Supabase todos los usuarios comparten el rol `authenticated`. En `variant_costs` una política RLS lo restringe a dueño, encargado y depósito.
 
 ### 3.3 Stock e inventario
 
-| Tabla | Campos clave |
-|---|---|
-| `stock_levels` | `variant_id` PK, `quantity`, `updated_at`. Solo la modifica el trigger de `stock_movements` |
+| Tabla                      | Campos clave                                                                                                                                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stock_levels`             | `variant_id` PK, `quantity`, `updated_at`. Solo la modifica el trigger de `stock_movements`                                                                                              |
 | `stock_movements` (ledger) | `id`, `variant_id`, `movement_type`, `quantity` (con signo), `stock_before`, `stock_after`, `unit_cost`, `reason`, `reference_type`, `reference_id`, `notes`, `created_by`, `created_at` |
-| `inventory_counts` | `id`, `number`, `status` (draft, counting, review, applied, cancelled), `scope`, `started_at`, `applied_at`, `created_by`, `applied_by`, `notes` |
-| `inventory_count_items` | `id`, `count_id`, `variant_id`, `expected_qty`, `counted_qty`, `counted_at`, `counted_by`, `difference`, `notes`. `UNIQUE(count_id, variant_id)` |
+| `inventory_counts`         | `id`, `number`, `status` (draft, counting, review, applied, cancelled), `scope`, `started_at`, `applied_at`, `created_by`, `applied_by`, `notes`                                         |
+| `inventory_count_items`    | `id`, `count_id`, `variant_id`, `expected_qty`, `counted_qty`, `counted_at`, `counted_by`, `difference`, `notes`. `UNIQUE(count_id, variant_id)`                                         |
 
 `movement_type`: `purchase_in`, `sale_out`, `sale_return_in`, `sale_void_in`, `purchase_return_out`, `adjustment_in`, `adjustment_out`, `inventory_adjustment`, `import_adjustment`, `initial_load`, `damage_out`, `theft_out`, `internal_use_out`.
 
 ### 3.4 Ventas
 
-| Tabla | Campos clave |
-|---|---|
-| `customers` (opcional) | `id`, `name`, `phone`, `email`, `document`, `notes` |
-| `sales` | `id`, `number`, `cash_session_id`, `customer_id`, `status` (completed, voided), `subtotal`, `discount_amount`, `total`, `notes`, `client_request_id` (único), `created_by`, `created_at`, `voided_by`, `voided_at`, `void_reason` |
-| `sale_items` | `id`, `sale_id`, `variant_id`, `quantity`, `unit_price`, `discount_amount`, `line_total`, snapshot: `product_name`, `sku`, `ean`, `color`, `size` |
-| `sale_item_costs` | `sale_item_id` PK, `unit_cost` (restringido por RLS) |
-| `sale_payments` | `id`, `sale_id`, `payment_method_id`, `amount`, `amount_tendered`, `change_given`, `installments`, `reference` |
-| `sale_returns` / `sale_return_items` | `sale_id`, ítems devueltos, `refund_method_id`, `refund_amount`, `reason`, `restock` |
+| Tabla                                | Campos clave                                                                                                                                                                                                                      |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `customers` (opcional)               | `id`, `name`, `phone`, `email`, `document`, `notes`                                                                                                                                                                               |
+| `sales`                              | `id`, `number`, `cash_session_id`, `customer_id`, `status` (completed, voided), `subtotal`, `discount_amount`, `total`, `notes`, `client_request_id` (único), `created_by`, `created_at`, `voided_by`, `voided_at`, `void_reason` |
+| `sale_items`                         | `id`, `sale_id`, `variant_id`, `quantity`, `unit_price`, `discount_amount`, `line_total`, snapshot: `product_name`, `sku`, `ean`, `color`, `size`                                                                                 |
+| `sale_item_costs`                    | `sale_item_id` PK, `unit_cost` (restringido por RLS)                                                                                                                                                                              |
+| `sale_payments`                      | `id`, `sale_id`, `payment_method_id`, `amount`, `amount_tendered`, `change_given`, `installments`, `reference`                                                                                                                    |
+| `sale_returns` / `sale_return_items` | `sale_id`, ítems devueltos, `refund_method_id`, `refund_amount`, `reason`, `restock`                                                                                                                                              |
 
 ### 3.5 Caja y gastos
 
-| Tabla | Campos clave |
-|---|---|
-| `payment_methods` | `id`, `code` (cash, transfer, debit, credit, mercadopago, other), `name`, **`is_cash`**, `active`, `sort_order`, `is_system` |
-| `cash_registers` | `id`, `name`, `active` |
-| `cash_sessions` | `id`, `register_id`, `status` (open, closed), `opened_by`, `opened_at`, `opening_amount`, `closed_by`, `closed_at`, `expected_cash`, `counted_cash`, `cash_difference`, `closing_notes`. Índice único parcial: una sola sesión abierta por caja |
-| `cash_movements` (ledger) | `id`, `cash_session_id`, `payment_method_id`, `kind`, `direction` (in/out), `amount` (> 0), `affects_physical_cash`, `description`, `reference_type`, `reference_id`, `created_by`, `created_at` |
-| `cash_session_totals` | `session_id`, `payment_method_id`, `expected`, `reported` |
-| `cash_count_details` (opcional) | `session_id`, `denomination`, `quantity` |
-| `expense_categories` | `id`, `name` |
-| `expenses` | `id`, `date`, `category_id`, `description`, `amount`, `payment_method_id`, `paid_from_register`, `cash_session_id`, `supplier_id`, `receipt_ref`, `created_by`, `voided_at` |
+| Tabla                           | Campos clave                                                                                                                                                                                                                                    |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `payment_methods`               | `id`, `code` (cash, transfer, debit, credit, mercadopago, other), `name`, **`is_cash`**, `active`, `sort_order`, `is_system`                                                                                                                    |
+| `cash_registers`                | `id`, `name`, `active`                                                                                                                                                                                                                          |
+| `cash_sessions`                 | `id`, `register_id`, `status` (open, closed), `opened_by`, `opened_at`, `opening_amount`, `closed_by`, `closed_at`, `expected_cash`, `counted_cash`, `cash_difference`, `closing_notes`. Índice único parcial: una sola sesión abierta por caja |
+| `cash_movements` (ledger)       | `id`, `cash_session_id`, `payment_method_id`, `kind`, `direction` (in/out), `amount` (> 0), `affects_physical_cash`, `description`, `reference_type`, `reference_id`, `created_by`, `created_at`                                                |
+| `cash_session_totals`           | `session_id`, `payment_method_id`, `expected`, `reported`                                                                                                                                                                                       |
+| `cash_count_details` (opcional) | `session_id`, `denomination`, `quantity`                                                                                                                                                                                                        |
+| `expense_categories`            | `id`, `name`                                                                                                                                                                                                                                    |
+| `expenses`                      | `id`, `date`, `category_id`, `description`, `amount`, `payment_method_id`, `paid_from_register`, `cash_session_id`, `supplier_id`, `receipt_ref`, `created_by`, `voided_at`                                                                     |
 
 `cash_movements.kind`: `opening_float`, `sale`, `sale_void`, `sale_refund`, `income`, `expense`, `withdrawal`, `supplier_payment`, `adjustment`.
 
 ### 3.6 Proveedores y compras
 
-| Tabla | Campos clave |
-|---|---|
-| `suppliers` | `id`, `name`, `tax_id`, `contact`, `phone`, `email`, `address`, `payment_terms_days`, `notes`, `active` |
-| `purchases` | `id`, `number`, `supplier_id`, `invoice_number`, `purchase_date`, `due_date`, `status` (draft, received, cancelled), `subtotal`, `discount_amount`, `tax_amount`, `total`, `paid_amount`, `payment_status` (pending, partial, paid), `received_at`, `notes`, `created_by` |
-| `purchase_items` | `id`, `purchase_id`, `variant_id`, `quantity`, `unit_cost`, `line_total` |
-| `supplier_payments` | `id`, `supplier_id`, `payment_method_id`, `amount`, `paid_at`, `cash_session_id`, `reference`, `notes`, `created_by` |
-| `supplier_payment_allocations` | `payment_id`, `purchase_id`, `amount` |
-| `supplier_ledger` (ledger) | `id`, `supplier_id`, `entry_type` (purchase, payment, credit_note, adjustment, opening_balance), `amount` (con signo), `reference_type`, `reference_id`, `entry_date`, `notes`, `created_by` |
+| Tabla                          | Campos clave                                                                                                                                                                                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `suppliers`                    | `id`, `name`, `tax_id`, `contact`, `phone`, `email`, `address`, `payment_terms_days`, `notes`, `active`                                                                                                                                                                   |
+| `purchases`                    | `id`, `number`, `supplier_id`, `invoice_number`, `purchase_date`, `due_date`, `status` (draft, received, cancelled), `subtotal`, `discount_amount`, `tax_amount`, `total`, `paid_amount`, `payment_status` (pending, partial, paid), `received_at`, `notes`, `created_by` |
+| `purchase_items`               | `id`, `purchase_id`, `variant_id`, `quantity`, `unit_cost`, `line_total`                                                                                                                                                                                                  |
+| `supplier_payments`            | `id`, `supplier_id`, `payment_method_id`, `amount`, `paid_at`, `cash_session_id`, `reference`, `notes`, `created_by`                                                                                                                                                      |
+| `supplier_payment_allocations` | `payment_id`, `purchase_id`, `amount`                                                                                                                                                                                                                                     |
+| `supplier_ledger` (ledger)     | `id`, `supplier_id`, `entry_type` (purchase, payment, credit_note, adjustment, opening_balance), `amount` (con signo), `reference_type`, `reference_id`, `entry_date`, `notes`, `created_by`                                                                              |
 
 ### 3.7 Importación Excel
 
-| Tabla | Campos clave |
-|---|---|
-| `import_batches` | `id`, `kind` (catalog, stock), `mode`, `file_name`, `status` (uploaded, validated, applied, failed), `total_rows`, `ok_rows`, `warning_rows`, `error_rows`, `created_by`, `applied_at`, `summary` |
-| `import_batch_rows` | `id`, `batch_id`, `row_number`, `raw`, `parsed`, `status` (ok, warning, error), `errors`, `action` (create, update, skip), `variant_id` |
+| Tabla               | Campos clave                                                                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `import_batches`    | `id`, `kind` (catalog, stock), `mode`, `file_name`, `status` (uploaded, validated, applied, failed), `total_rows`, `ok_rows`, `warning_rows`, `error_rows`, `created_by`, `applied_at`, `summary` |
+| `import_batch_rows` | `id`, `batch_id`, `row_number`, `raw`, `parsed`, `status` (ok, warning, error), `errors`, `action` (create, update, skip), `variant_id`                                                           |
 
 ### 3.8 Relaciones principales
 
@@ -195,6 +195,7 @@ Se registran con una sola llamada: `register_sale(items, payments, customer, cli
 7. Genera un `cash_movements` por cada pago, con `affects_physical_cash` según el método. Si el cliente paga con un billete mayor, solo el neto (monto menos vuelto) entra a caja.
 
 **Las ventas no se editan ni se borran:**
+
 - `void_sale(sale_id, reason)`: anula, repone stock (`sale_void_in`) y registra los egresos de caja. Solo encargado o dueño.
 - `register_return(...)`: devolución o cambio parcial; se elige si vuelve a stock y por qué medio se reembolsa. Reembolso en efectivo sale de caja; por transferencia no toca el efectivo.
 
@@ -203,6 +204,7 @@ Se registran con una sola llamada: `register_sale(items, payments, customer, cli
 **Regla de oro:** cada movimiento guarda su método de pago y solo los métodos con `is_cash = true` afectan el efectivo físico. Transferencia, débito, crédito y Mercado Pago nunca entran a la cuenta de efectivo. Se refuerza con un `CHECK`/trigger: `affects_physical_cash` debe coincidir con `payment_methods.is_cash`.
 
 **Ciclo de vida**
+
 1. **Apertura:** `open_cash_session(register, opening_amount)`; registra el dinero inicial como `opening_float`. Una sola sesión abierta por caja.
 2. **Durante el turno:** ventas, ingresos manuales, gastos desde caja, retiros (con motivo obligatorio) y pagos a proveedores en efectivo. Todo queda como `cash_movements`.
 3. **Cierre:** `close_cash_session(session, counted_cash, notes)`.
@@ -235,13 +237,13 @@ Una orden de compra formal con recepción parcial se puede agregar más adelante
 
 Ledger con signo por proveedor. **Saldo = suma de `amount`** (positivo = lo que se le debe).
 
-| Evento | Entrada en el ledger |
-|---|---|
-| Recepción de compra | + total |
-| Pago al proveedor | - monto |
-| Nota de crédito / devolución | - monto |
-| Ajuste manual (con motivo) | +/- monto |
-| Saldo inicial al migrar | + monto |
+| Evento                       | Entrada en el ledger |
+| ---------------------------- | -------------------- |
+| Recepción de compra          | + total              |
+| Pago al proveedor            | - monto              |
+| Nota de crédito / devolución | - monto              |
+| Ajuste manual (con motivo)   | +/- monto            |
+| Saldo inicial al migrar      | + monto              |
 
 - `register_supplier_payment(supplier, method, amount, allocations?)` registra el pago y lo aplica a compras específicas; sin indicación aplica **FIFO** (la más antigua primero). Actualiza `paid_amount` y `payment_status`.
 - Pago en efectivo desde la caja abierta: genera además un egreso `supplier_payment` en `cash_movements`. Por transferencia no toca el efectivo.
@@ -252,6 +254,7 @@ Ledger con signo por proveedor. **Saldo = suma de `amount`** (positivo = lo que 
 **Exportación.** El `.xlsx` trae una hoja `Stock` con una fila por variante: `variant_id` (oculta, para match exacto), `product_code`, `product_name`, `category`, `brand`, `color`, `size`, `sku`, **`ean`**, `cost` (solo roles autorizados), `price`, `stock_actual`, `stock_min`, `active`; más una hoja `Instrucciones` y una hoja `Listas` (colores, talles, categorías válidos). `ean` y `sku` se escriben como **texto** para que Excel no los pase a notación científica ni borre ceros a la izquierda.
 
 **Importación en 3 pasos, nunca directa**
+
 1. **Subir:** el navegador lee el archivo (SheetJS) y manda las filas a `import_batch_rows` (staging).
 2. **Validar y previsualizar:** una RPC marca cada fila `ok`, `warning` o `error`. Controla EAN (formato y dígito verificador), EAN o SKU duplicados, talles y colores inexistentes, números negativos y filas repetidas. La UI muestra qué se crea, actualiza u omite y permite descargar los errores.
 3. **Aplicar:** `apply_import(batch_id)` corre atómico. Con errores bloqueantes no se aplica nada (o solo las filas válidas si el usuario lo elige).
@@ -259,6 +262,7 @@ Ledger con signo por proveedor. **Saldo = suma de `amount`** (positivo = lo que 
 **Orden de match de cada fila:** `variant_id` -> **EAN** -> SKU -> (`product_code` + color + talle).
 
 **Dos modos**
+
 - **Catálogo:** crea o actualiza productos y variantes (precio, costo, mínimos, EAN).
 - **Stock:** compara `stock_actual` del archivo con el del sistema y genera movimientos `import_adjustment` **solo por la diferencia**; nunca pisa el número directamente. La carga inicial usa `initial_load`.
 
@@ -277,25 +281,26 @@ El EAN existe desde la primera migración, aunque no haya lector:
 
 ## 12. Roles y permisos
 
-| Permiso | Dueño | Encargado | Vendedor/Cajero | Depósito | Solo lectura |
-|---|:-:|:-:|:-:|:-:|:-:|
-| Vender, devolver | Sí | Sí | Sí | No | No |
-| Abrir/cerrar caja propia | Sí | Sí | Sí | No | No |
-| Ver todas las cajas | Sí | Sí | Solo la propia | No | Sí |
-| Anular ventas | Sí | Sí | No | No | No |
-| Descuentos sobre el tope | Sí | Sí | No | No | No |
-| Gastos y retiros | Sí | Sí | Gastos chicos | No | No |
-| Productos y precios | Sí | Sí | No | No | No |
-| Ver costos y márgenes | Sí | Sí | No | Sí (costo) | Sí |
-| Ajustes de stock / inventario | Sí | Sí | No | Sí | No |
-| Importar Excel | Sí | Sí | No | Sí (stock) | No |
-| Exportar Excel | Sí | Sí | No | Sí | Sí |
-| Compras y proveedores | Sí | Sí | No | Recepción | Sí |
-| Pagos a proveedores | Sí | Sí | No | No | No |
-| Reportes | Sí | Sí | Solo ventas propias | No | Sí |
-| Usuarios, configuración, reabrir caja | Sí | No | No | No | No |
+| Permiso                               | Dueño | Encargado |   Vendedor/Cajero   |  Depósito  | Solo lectura |
+| ------------------------------------- | :---: | :-------: | :-----------------: | :--------: | :----------: |
+| Vender, devolver                      |  Sí   |    Sí     |         Sí          |     No     |      No      |
+| Abrir/cerrar caja propia              |  Sí   |    Sí     |         Sí          |     No     |      No      |
+| Ver todas las cajas                   |  Sí   |    Sí     |   Solo la propia    |     No     |      Sí      |
+| Anular ventas                         |  Sí   |    Sí     |         No          |     No     |      No      |
+| Descuentos sobre el tope              |  Sí   |    Sí     |         No          |     No     |      No      |
+| Gastos y retiros                      |  Sí   |    Sí     |    Gastos chicos    |     No     |      No      |
+| Productos y precios                   |  Sí   |    Sí     |         No          |     No     |      No      |
+| Ver costos y márgenes                 |  Sí   |    Sí     |         No          | Sí (costo) |      Sí      |
+| Ajustes de stock / inventario         |  Sí   |    Sí     |         No          |     Sí     |      No      |
+| Importar Excel                        |  Sí   |    Sí     |         No          | Sí (stock) |      No      |
+| Exportar Excel                        |  Sí   |    Sí     |         No          |     Sí     |      Sí      |
+| Compras y proveedores                 |  Sí   |    Sí     |         No          | Recepción  |      Sí      |
+| Pagos a proveedores                   |  Sí   |    Sí     |         No          |     No     |      No      |
+| Reportes                              |  Sí   |    Sí     | Solo ventas propias |     No     |      Sí      |
+| Usuarios, configuración, reabrir caja |  Sí   |    No     |         No          |     No     |      No      |
 
 **Cómo se aplica**
+
 - `profiles.role` como enum y funciones helper (`auth_role()`, `has_role(...)`).
 - **RLS** en todas las tablas. Las tablas transaccionales **no tienen políticas de INSERT/UPDATE/DELETE**: solo se escribe por RPC.
 - Las RPC `SECURITY DEFINER` fijan `search_path` y **verifican el rol adentro**; nunca confían en el frontend.
@@ -305,19 +310,19 @@ El EAN existe desde la primera migración, aunque no haya lector:
 
 ## 13. Orden recomendado de desarrollo
 
-| Etapa | Contenido | Por qué en este orden |
-|---|---|---|
-| 0. Fundación | Repo, Vite + TS, lint, Supabase local, CI, docs | Base reproducible |
-| 1. Auth y roles | `profiles`, login, RLS base, `audit_log`, alta de usuarios | Todo depende de la seguridad |
-| 2. Catálogo | Colores, talles, categorías, productos, variantes, EAN, costos, historial de precios | Sin catálogo no hay nada |
-| 3. Stock | Ledger, `stock_levels`, triggers, ajustes manuales, `v_stock_audit`, tests | Núcleo de integridad |
-| 4. Excel | Exportar, importar catálogo y stock, carga inicial | Necesario para cargar el local real |
-| 5. Inventario físico | Conteos, diferencias, aplicar | Se apoya en stock |
-| 6. Caja | Métodos de pago, sesiones, movimientos, gastos, cierre | Las ventas la necesitan |
-| 7. Ventas (POS) | `register_sale`, pagos mixtos, anular, devolver | Integra stock y caja |
-| 8. Proveedores y compras | Compras, recepción, cuenta corriente, pagos | Integra stock, caja y ledger |
-| 9. Reportes | Ventas, margen, stock valorizado, caja, deudas, stock bajo y sin rotación | Con datos reales |
-| 10. Endurecimiento | E2E, backups, performance; luego EAN/lector y etiquetas | Cierre y futuro |
+| Etapa                    | Contenido                                                                            | Por qué en este orden               |
+| ------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------- |
+| 0. Fundación             | Repo, Vite + TS, lint, Supabase local, CI, docs                                      | Base reproducible                   |
+| 1. Auth y roles          | `profiles`, login, RLS base, `audit_log`, alta de usuarios                           | Todo depende de la seguridad        |
+| 2. Catálogo              | Colores, talles, categorías, productos, variantes, EAN, costos, historial de precios | Sin catálogo no hay nada            |
+| 3. Stock                 | Ledger, `stock_levels`, triggers, ajustes manuales, `v_stock_audit`, tests           | Núcleo de integridad                |
+| 4. Excel                 | Exportar, importar catálogo y stock, carga inicial                                   | Necesario para cargar el local real |
+| 5. Inventario físico     | Conteos, diferencias, aplicar                                                        | Se apoya en stock                   |
+| 6. Caja                  | Métodos de pago, sesiones, movimientos, gastos, cierre                               | Las ventas la necesitan             |
+| 7. Ventas (POS)          | `register_sale`, pagos mixtos, anular, devolver                                      | Integra stock y caja                |
+| 8. Proveedores y compras | Compras, recepción, cuenta corriente, pagos                                          | Integra stock, caja y ledger        |
+| 9. Reportes              | Ventas, margen, stock valorizado, caja, deudas, stock bajo y sin rotación            | Con datos reales                    |
+| 10. Endurecimiento       | E2E, backups, performance; luego EAN/lector y etiquetas                              | Cierre y futuro                     |
 
 Cada etapa cierra con migraciones, tests (pgTAP para reglas críticas) y una pantalla usable.
 

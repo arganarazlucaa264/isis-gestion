@@ -1,0 +1,3 @@
+-- Datos base de desarrollo/producción inicial.
+-- Etapa 0: vacío a propósito. Se completa a partir de la Etapa 1/2
+-- (métodos de pago, talles, colores, settings, etc.).
