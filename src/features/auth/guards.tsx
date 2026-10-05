@@ -5,7 +5,7 @@ import { hasRole, type AppRole } from '@/features/auth/roles'
 function FullScreenMessage({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 p-6 text-center">
-      <h1 className="text-xl font-semibold">{title}</h1>
+      <h1 className="text-3xl font-semibold">{title}</h1>
       {children}
     </main>
   )
@@ -23,12 +23,12 @@ export function RequireAuth() {
   if (status === 'no_access') {
     return (
       <FullScreenMessage title="Tu cuenta no tiene acceso">
-        <p className="text-slate-600">
+        <p className="text-bronze-600">
           Tu usuario está desactivado o no tiene perfil. Pedile al dueño que lo habilite.
         </p>
         <button
           type="button"
-          className="rounded bg-slate-900 px-4 py-2 text-white"
+          className="rounded-lg bg-ink-900 px-4 py-2 text-cream-50"
           onClick={() => void signOut()}
         >
           Cerrar sesión
@@ -45,7 +45,7 @@ export function RequireRole({ roles }: { roles: readonly AppRole[] }) {
   if (!hasRole(profile, roles)) {
     return (
       <FullScreenMessage title="Sin permiso">
-        <p className="text-slate-600">No tenés permiso para ver esta sección.</p>
+        <p className="text-bronze-600">No tenés permiso para ver esta sección.</p>
       </FullScreenMessage>
     )
   }

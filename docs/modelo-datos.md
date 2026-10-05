@@ -4,19 +4,58 @@ Modelo aprobado en la etapa de diseño (ver [arquitectura.md](./arquitectura.md)
 de las migraciones de `supabase/migrations/`: cada tabla se crea en la etapa indicada en el plan
 de desarrollo y, si el diseño cambia al implementarla, **este documento se actualiza en el mismo commit**.
 
-| Etapa                | Tablas                                                                                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Auth y roles      | `profiles`, `app_settings`, `audit_log`                                                                                                               |
-| 2. Catálogo          | `categories`, `brands`, `colors`, `sizes`, `products`, `product_variants`, `variant_costs`, `price_history`                                           |
-| 3. Stock             | `stock_levels`, `stock_movements`                                                                                                                     |
-| 4. Excel             | `import_batches`, `import_batch_rows`                                                                                                                 |
-| 5. Inventario físico | `inventory_counts`, `inventory_count_items`                                                                                                           |
-| 6. Caja              | `payment_methods`, `cash_registers`, `cash_sessions`, `cash_movements`, `cash_session_totals`, `cash_count_details`, `expense_categories`, `expenses` |
-| 7. Ventas            | `customers`, `sales`, `sale_items`, `sale_item_costs`, `sale_payments`, `sale_returns`, `sale_return_items`                                           |
-| 8. Compras           | `suppliers`, `purchases`, `purchase_items`, `supplier_payments`, `supplier_payment_allocations`, `supplier_ledger`                                    |
+## Estado de implementación
 
-> Nota: `suppliers` se necesita antes en `products.supplier_id`; en la Etapa 2 se crea la tabla
-> mínima y la Etapa 8 la completa con migraciones aditivas.
+Todas las etapas del plan están implementadas en `supabase/migrations/` (orden cronológico):
+
+| Migración                     | Contenido                                                                                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `20260101000000_foundation`   | `set_updated_at()`, `business_date()`                                                                                                                  |
+| `20260102000000_auth_roles`   | `app_role`, `profiles`, `auth_role()`, `has_role()`, RPC de usuarios                                                                                   |
+| `20260102000100_audit_log`    | `audit_log` inmutable, `audit_trigger()`                                                                                                               |
+| `20260102000200_app_settings` | `app_settings`, `set_app_setting()`                                                                                                                    |
+| `20260103000000_catalog`      | categorías, marcas, colores, talles, **proveedores**, productos, variantes, `variant_costs`, `price_history`, `cost_history`, validación GTIN/EAN      |
+| `20260104000000_stock`        | `stock_levels`, `stock_movements` (ledger), `adjust_stock`, `create_variant`, `find_variant_by_code`, `search_variants`, `v_variants`, `v_stock_audit` |
+| `20260105000000_inventory`    | `inventory_counts`, `inventory_count_items` y su flujo (contar → revisar → aplicar)                                                                    |
+| `20260106000000_cash`         | medios de pago, cajas, sesiones, `cash_movements` (ledger), totales de cierre, gastos                                                                  |
+| `20260107000000_sales`        | clientes, ventas, ítems (snapshot), costos de venta, pagos, devoluciones, `register_sale`, `void_sale`, `register_return`                              |
+| `20260108000000_purchases`    | compras, pagos a proveedores, `supplier_ledger`, `register_supplier_payment`, vistas de saldo y estado de cuenta                                       |
+| `20260109000000_import_excel` | staging de importación, validación y aplicación atómica                                                                                                |
+| `20260110000000_reports`      | reportes y `dashboard_summary()`                                                                                                                       |
+| `20260111000000_hardening`    | `harden_privileges()`: permisos de funciones, vistas y secuencias                                                                                      |
+
+### Diferencias respecto del diseño original
+
+- `suppliers` se crea completa en la migración de catálogo (la necesita `products.supplier_id`).
+- Se agregaron `cost_history` (el historial de costos no puede ir en `price_history`: los vendedores
+  no deben ver costos) y las vistas `v_variants`, `v_stock_audit`, `v_cash_sessions`,
+  `v_cash_method_totals`, `v_supplier_balances` y `v_supplier_statement` (todas `security_invoker`).
+- `v_variants_all` (con costos, sin RLS) existe solo para las funciones de reportes y no es accesible
+  desde la API.
+- Funciones `internal_*`: uso interno entre RPC (mover stock, movimientos de caja, asientos de
+  proveedor). No son ejecutables por la API.
+- Los estados (`status`) de ventas, compras, cajas, inventarios e importaciones son `text` con `CHECK`
+  (no enums), salvo los tipos de movimiento (`stock_movement_type`, `cash_movement_kind`,
+  `supplier_ledger_type`) y `app_role`.
+- El EAN es único ignorando ceros a la izquierda (UPC-A 12 dígitos == EAN-13 con un 0 delante).
+- `sale_items.discount_amount` incluye el prorrateo del descuento general; así `line_total` suma
+  exactamente `sales.total` y las devoluciones reintegran lo efectivamente pagado.
+- Criterios de reportes: las ventas cuentan en el día de la venta, las devoluciones en el día de la
+  devolución, las ventas anuladas no cuentan. Costo = promedio ponderado vigente al vender.
+- `cash_count_details` (conteo por denominación) quedó fuera de esta versión.
+
+## Tablas por etapa (referencia del diseño)
+
+| Etapa                | Tablas                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Auth y roles      | `profiles`, `app_settings`, `audit_log`                                                                                                  |
+| 2. Catálogo          | `categories`, `brands`, `colors`, `sizes`, `products`, `product_variants`, `variant_costs`, `price_history`, `cost_history`, `suppliers` |
+| 3. Stock             | `stock_levels`, `stock_movements`                                                                                                        |
+| 4. Excel             | `import_batches`, `import_batch_rows`                                                                                                    |
+| 5. Inventario físico | `inventory_counts`, `inventory_count_items`                                                                                              |
+| 6. Caja              | `payment_methods`, `cash_registers`, `cash_sessions`, `cash_movements`, `cash_session_totals`, `expense_categories`, `expenses`          |
+| 7. Ventas            | `customers`, `sales`, `sale_items`, `sale_item_costs`, `sale_payments`, `sale_returns`, `sale_return_items`                              |
+| 8. Compras           | `purchases`, `purchase_items`, `supplier_payments`, `supplier_payment_allocations`, `supplier_ledger`                                    |
 
 ## Convenciones
 

@@ -1,41 +1,57 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type SyntheticEvent } from 'react'
+import { Badge, Card, CardHeader, PageHeader, QueryBoundary } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { Input, Select } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Modal'
+import { Table, Td, Th, Thead, Tr } from '@/components/ui/Table'
+import { useToast } from '@/components/ui/toast-context'
 import { ALL_ROLES, ROLE_LABELS, type AppRole, type Profile } from '@/features/auth/roles'
 import { createUser, listProfiles, updateProfile } from '@/features/users/api'
 import { createUserSchema } from '@/features/users/schemas'
+import { toUserMessage } from '@/lib/errors'
 
 function UserRow({ profile }: { profile: Profile }) {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [fullName, setFullName] = useState(profile.full_name)
   const [role, setRole] = useState<AppRole>(profile.role)
   const [active, setActive] = useState(profile.active)
 
   const save = useMutation({
     mutationFn: () => updateProfile({ id: profile.id, fullName, role, active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profiles'] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profiles'] })
+      toast.success('Usuario actualizado')
+    },
+    onError: (e) => {
+      toast.error(toUserMessage(e))
+    },
   })
 
   const dirty = fullName !== profile.full_name || role !== profile.role || active !== profile.active
 
   return (
-    <tr className="border-t border-slate-200">
-      <td className="p-2 text-slate-600">{profile.email}</td>
-      <td className="p-2">
+    <Tr>
+      <Td className="text-bronze-600">{profile.email}</Td>
+      <Td>
         <input
           value={fullName}
+          aria-label="Nombre"
           onChange={(e) => {
             setFullName(e.target.value)
           }}
-          className="w-full rounded border border-slate-300 px-2 py-1"
+          className="h-9 w-full min-w-40 rounded-lg border border-sand-300 bg-white px-2"
         />
-      </td>
-      <td className="p-2">
+      </Td>
+      <Td>
         <select
           value={role}
+          aria-label="Rol"
           onChange={(e) => {
             setRole(e.target.value as AppRole)
           }}
-          className="rounded border border-slate-300 px-2 py-1"
+          className="h-9 rounded-lg border border-sand-300 bg-white px-2"
         >
           {ALL_ROLES.map((r) => (
             <option key={r} value={r}>
@@ -43,44 +59,49 @@ function UserRow({ profile }: { profile: Profile }) {
             </option>
           ))}
         </select>
-      </td>
-      <td className="p-2 text-center">
+      </Td>
+      <Td className="text-center">
         <input
           type="checkbox"
           checked={active}
+          aria-label="Activo"
           onChange={(e) => {
             setActive(e.target.checked)
           }}
-          aria-label="Activo"
+          className="size-4 accent-gold-500"
         />
-      </td>
-      <td className="p-2">
-        <button
-          type="button"
-          disabled={!dirty || save.isPending}
+      </Td>
+      <Td>
+        <Button
+          size="sm"
+          disabled={!dirty}
+          loading={save.isPending}
           onClick={() => {
             save.mutate()
           }}
-          className="rounded bg-slate-900 px-3 py-1 text-white disabled:opacity-40"
         >
           Guardar
-        </button>
-        {save.isError && <p className="text-xs text-red-700">{save.error.message}</p>}
-      </td>
-    </tr>
+        </Button>
+      </Td>
+    </Tr>
   )
 }
 
-function CreateUserForm() {
+function CreateUserModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [form, setForm] = useState({ email: '', password: '', full_name: '', role: 'cashier' })
   const [formError, setFormError] = useState<string | null>(null)
 
   const create = useMutation({
     mutationFn: createUser,
-    onSuccess: () => {
-      setForm({ email: '', password: '', full_name: '', role: 'cashier' })
-      return queryClient.invalidateQueries({ queryKey: ['profiles'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profiles'] })
+      toast.success('Usuario creado')
+      onClose()
+    },
+    onError: (e) => {
+      setFormError(toUserMessage(e))
     },
   })
 
@@ -95,97 +116,128 @@ function CreateUserForm() {
     create.mutate(parsed.data)
   }
 
-  const field = 'rounded border border-slate-300 px-2 py-1'
   return (
-    <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-3" noValidate>
-      <input
-        placeholder="Email"
-        type="email"
-        value={form.email}
-        onChange={(e) => {
-          setForm({ ...form, email: e.target.value })
-        }}
-        className={field}
-      />
-      <input
-        placeholder="Nombre"
-        value={form.full_name}
-        onChange={(e) => {
-          setForm({ ...form, full_name: e.target.value })
-        }}
-        className={field}
-      />
-      <input
-        placeholder="Contraseña inicial"
-        type="password"
-        autoComplete="new-password"
-        value={form.password}
-        onChange={(e) => {
-          setForm({ ...form, password: e.target.value })
-        }}
-        className={field}
-      />
-      <select
-        value={form.role}
-        onChange={(e) => {
-          setForm({ ...form, role: e.target.value })
-        }}
-        className={field}
-      >
-        {ALL_ROLES.map((r) => (
-          <option key={r} value={r}>
-            {ROLE_LABELS[r]}
-          </option>
-        ))}
-      </select>
-      <button
-        type="submit"
-        disabled={create.isPending}
-        className="rounded bg-slate-900 px-3 py-1 text-white disabled:opacity-40"
-      >
-        Crear usuario
-      </button>
-      {(formError ?? (create.isError ? create.error.message : null)) && (
-        <p role="alert" className="w-full text-sm text-red-700">
-          {formError ?? create.error?.message}
-        </p>
-      )}
-    </form>
+    <Modal
+      open
+      title="Nuevo usuario"
+      size="sm"
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button loading={create.isPending} onClick={onSubmit}>
+            Crear usuario
+          </Button>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
+        <Input
+          label="Nombre"
+          value={form.full_name}
+          onChange={(e) => {
+            setForm({ ...form, full_name: e.target.value })
+          }}
+          autoFocus
+        />
+        <Input
+          label="Email"
+          type="email"
+          value={form.email}
+          onChange={(e) => {
+            setForm({ ...form, email: e.target.value })
+          }}
+        />
+        <Input
+          label="Contraseña inicial"
+          type="password"
+          autoComplete="new-password"
+          value={form.password}
+          onChange={(e) => {
+            setForm({ ...form, password: e.target.value })
+          }}
+          hint="Mínimo 8 caracteres. El usuario podrá cambiarla."
+        />
+        <Select
+          label="Rol"
+          value={form.role}
+          onChange={(e) => {
+            setForm({ ...form, role: e.target.value })
+          }}
+        >
+          {ALL_ROLES.map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r]}
+            </option>
+          ))}
+        </Select>
+        {formError && (
+          <p role="alert" className="text-sm text-red-700">
+            {formError}
+          </p>
+        )}
+        <button type="submit" className="hidden" />
+      </form>
+    </Modal>
   )
 }
 
 export function UsersPage() {
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: listProfiles })
+  const [creating, setCreating] = useState(false)
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Usuarios</h1>
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">Nuevo usuario</h2>
-        <CreateUserForm />
-      </section>
-      <section>
-        {profiles.isPending && <p>Cargando…</p>}
-        {profiles.isError && <p className="text-red-700">{profiles.error.message}</p>}
-        {profiles.data && (
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="text-slate-500">
-                <th className="p-2">Email</th>
-                <th className="p-2">Nombre</th>
-                <th className="p-2">Rol</th>
-                <th className="p-2 text-center">Activo</th>
-                <th className="p-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {profiles.data.map((p) => (
-                <UserRow key={`${p.id}:${p.updated_at}`} profile={p} />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-    </main>
+    <>
+      <PageHeader
+        title="Usuarios"
+        description="Solo el dueño crea usuarios y asigna roles. Desactivar un usuario corta su acceso de inmediato."
+        actions={
+          <Button
+            icon="plus"
+            variant="gold"
+            onClick={() => {
+              setCreating(true)
+            }}
+          >
+            Nuevo usuario
+          </Button>
+        }
+      />
+      <Card>
+        <CardHeader
+          title="Equipo"
+          actions={<Badge tone="gold">Siempre debe quedar un dueño activo</Badge>}
+        />
+        <QueryBoundary query={profiles}>
+          {(rows) => (
+            <Table>
+              <Thead>
+                <tr>
+                  <Th>Email</Th>
+                  <Th>Nombre</Th>
+                  <Th>Rol</Th>
+                  <Th className="text-center">Activo</Th>
+                  <Th />
+                </tr>
+              </Thead>
+              <tbody>
+                {rows.map((p) => (
+                  <UserRow key={`${p.id}:${p.updated_at}`} profile={p} />
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </QueryBoundary>
+      </Card>
+      {creating && (
+        <CreateUserModal
+          onClose={() => {
+            setCreating(false)
+          }}
+        />
+      )}
+    </>
   )
 }

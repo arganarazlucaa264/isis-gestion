@@ -5,7 +5,8 @@
 ## Decisión
 
 - React + Vite + TypeScript con modo estricto (`strict`, `noUncheckedIndexedAccess`,
-  `exactOptionalPropertyTypes`, etc.).
+  `noUnusedLocals`, etc.). `exactOptionalPropertyTypes` se dejó desactivado: choca con los tipos
+  generados por Supabase y con las props de React.
 - TanStack Query para estado del servidor; React Router para rutas; Zod para validar datos.
 - Tailwind CSS v4 (plugin de Vite). Sin librería de UI pesada hasta que se necesite.
 - ESLint (typescript-eslint `strictTypeChecked`) + Prettier; Vitest para tests del frontend.

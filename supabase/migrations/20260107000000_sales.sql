@@ -250,7 +250,9 @@ begin
   if p_client_request_id is null then
     raise exception 'Falta el identificador de la operación' using errcode = '22023';
   end if;
-  -- Idempotencia: el mismo request devuelve la venta ya creada.
+  -- Idempotencia: el mismo request devuelve la venta ya creada. El lock evita que dos envíos
+  -- simultáneos con la misma clave se pisen (el segundo espera y recibe la venta del primero).
+  perform pg_advisory_xact_lock(hashtextextended(p_client_request_id::text, 0));
   select * into v_sale from public.sales where client_request_id = p_client_request_id;
   if found then
     if v_sale.created_by <> auth.uid() then

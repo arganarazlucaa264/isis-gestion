@@ -1,4 +1,6 @@
 import { useState, type SyntheticEvent } from 'react'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Field'
 import { signInWithPassword } from '@/features/auth/api'
 import { loginSchema } from '@/features/auth/schemas'
 
@@ -28,46 +30,56 @@ export function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
-      <h1 className="text-center text-2xl font-semibold">Isis Gestión</h1>
-      <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-4" noValidate>
-        <label className="flex flex-col gap-1 text-sm">
-          Email
-          <input
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <section className="print-gold flex flex-col items-center justify-center bg-ink-900 px-8 py-14 text-center text-cream-100">
+        <p className="font-display text-7xl font-semibold tracking-[0.25em] text-gold-400 sm:text-8xl">
+          ISIS
+        </p>
+        <div className="print-strip my-5 w-40 rounded-full" />
+        <p className="text-xs tracking-[0.45em] text-sand-300 uppercase">Gestión del local</p>
+      </section>
+      <section className="flex items-center justify-center px-6 py-12">
+        <form
+          onSubmit={(e) => void onSubmit(e)}
+          className="flex w-full max-w-sm flex-col gap-4"
+          noValidate
+        >
+          <div>
+            <h1 className="text-4xl font-semibold">Ingresar</h1>
+            <p className="mt-1 text-sm text-bronze-600">Accedé con tu usuario del local.</p>
+          </div>
+          <Input
+            label="Email"
             type="email"
             autoComplete="username"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value)
             }}
-            className="rounded border border-slate-300 px-3 py-2"
+            autoFocus
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Contraseña
-          <input
+          <Input
+            label="Contraseña"
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value)
             }}
-            className="rounded border border-slate-300 px-3 py-2"
           />
-        </label>
-        {error && (
-          <p role="alert" className="text-sm text-red-700">
-            {error}
+          {error && (
+            <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+              {error}
+            </p>
+          )}
+          <Button type="submit" size="lg" variant="primary" loading={submitting}>
+            Ingresar
+          </Button>
+          <p className="text-center text-xs text-bronze-500">
+            El acceso lo crea el dueño. No hay registro público.
           </p>
-        )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
-        >
-          {submitting ? 'Ingresando…' : 'Ingresar'}
-        </button>
-      </form>
-    </main>
+        </form>
+      </section>
+    </div>
   )
 }

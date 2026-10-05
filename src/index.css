@@ -1,5 +1,103 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-ink-950: #0b0907;
+  --color-ink-900: #14110e;
+  --color-ink-800: #1f1a15;
+  --color-ink-700: #2b241d;
+  --color-ink-600: #3a3128;
+  --color-cream-50: #fdfaf3;
+  --color-cream-100: #f7f1e6;
+  --color-sand-100: #f0e7d6;
+  --color-sand-200: #eadfca;
+  --color-sand-300: #dccfb4;
+  --color-sand-400: #c4b394;
+  --color-bronze-400: #a07a58;
+  --color-bronze-500: #8a6342;
+  --color-bronze-600: #7a5236;
+  --color-bronze-700: #5f3f29;
+  --color-gold-300: #e6cb8f;
+  --color-gold-400: #d9b567;
+  --color-gold-500: #b98f3e;
+  --color-gold-600: #9a742c;
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-cream-100 text-ink-900 antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+/* Animal print sutil: una capa decorativa detrás del contenido, nunca sobre el texto. */
+.print-gold,
+.print-brown {
+  position: relative;
+  isolation: isolate;
+}
+.print-gold::before,
+.print-brown::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-size: 220px 220px;
+}
+.print-gold::before {
+  background-image: url('./assets/leopard-gold.svg');
+  opacity: 0.1;
+}
+.print-brown::before {
+  background-image: url('./assets/leopard-brown.svg');
+  opacity: 0.07;
+}
+/* Cinta fina decorativa (encabezados) */
+.print-strip {
+  height: 6px;
+  background-image: url('./assets/leopard-gold.svg');
+  background-size: 110px 110px;
+  background-position: center;
+  opacity: 0.55;
+}
+
+/* Comprobante: al imprimir solo se ve el área #print-area */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-area,
+  #print-area * {
+    visibility: visible;
+  }
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    padding: 4mm;
+    color: #000;
+    background: #fff;
+  }
+}
+
+/* Inputs numéricos sin flechas */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

@@ -8,8 +8,22 @@ Stack: React + Vite + TypeScript · Supabase (PostgreSQL, Auth, RLS).
 
 ## Estado
 
-**Etapas 0 (fundación) y 1 (autenticación, roles y RLS base) completas.** Todavía no hay funcionalidad de negocio.
-Plan de etapas en [docs/arquitectura.md](docs/arquitectura.md) (sección 13).
+Sistema completo implementado (etapas 0 a 10 del plan en [docs/arquitectura.md](docs/arquitectura.md)):
+
+| Área                  | Qué incluye                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Acceso                | Supabase Auth (email + contraseña), sin registro público, 5 roles, RLS en todas las tablas, auditoría                                                               |
+| Catálogo              | Categorías, marcas, colores, talles, productos y variantes (modelo + color + talle), SKU, EAN, costos, precios, historiales                                         |
+| Stock                 | Ledger inmutable de movimientos, stock mínimo, ajustes, pérdidas/roturas, carga inicial, control de integridad                                                      |
+| Inventario físico     | Conteo (manual, Excel o escáner), revisión, aplicación de diferencias, historial                                                                                    |
+| Excel                 | Importar productos/variantes/stock con staging, validación y vista previa; exportar stock, productos, ventas, compras, movimientos, caja, proveedores e inventarios |
+| Caja                  | Apertura, ingresos, retiros, gastos, pagos a proveedores, cierre con efectivo esperado vs. contado; solo el efectivo suma al efectivo físico                        |
+| Ventas (POS)          | Búsqueda por nombre/SKU/EAN, carrito, descuentos, pagos mixtos, vuelto, comprobante interno, anulaciones y devoluciones                                             |
+| Gastos                | Categorías, medio de pago, comprobante, impacto correcto en caja                                                                                                    |
+| Proveedores y compras | Compras con pago total/parcial/pendiente, recepción (stock + costo promedio), cuenta corriente, vencimientos                                                        |
+| Reportes y dashboard  | Ventas por día/producto/categoría/medio, stock bajo/sin stock/valorizado, deudas, gastos, margen y resultado estimado                                               |
+
+Detalle de pruebas y pendientes en [docs/verificacion.md](docs/verificacion.md).
 
 ## Requisitos
 
@@ -69,4 +83,6 @@ src/types/            tipos generados de la base
 
 - [Arquitectura](docs/arquitectura.md) ([PDF](docs/arquitectura.pdf))
 - [Modelo de datos](docs/modelo-datos.md)
+- [Seguridad y permisos](docs/seguridad.md)
+- [Verificación](docs/verificacion.md)
 - [Decisiones de arquitectura](docs/decisiones/README.md)
