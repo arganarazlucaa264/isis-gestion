@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Typecheck, lint, tests y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+      # El build no debe contener claves privilegiadas (el test revisa también dist/)
+      - run: npx vitest run src/lib/no-secrets.node.test.ts
+
+  edge-function:
+    name: Edge Function (tipos)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check supabase/functions/create-user/index.ts
+
+  database:
+    name: Base de datos (migraciones, lint, pgTAP y tipos)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Levanta el stack local con Docker y aplica TODAS las migraciones (y seed.sql) sobre la imagen real de Supabase
+      - run: npx supabase start
+      # Análisis estático de todas las funciones PL/pgSQL (plpgsql_check): falla ante errores
+      - run: npx supabase db lint --level error --fail-on error
+      # Tests pgTAP (RLS, RPC, ledgers, caja, ventas, compras, importación, reportes)
+      - run: npx supabase test db
+      # Auditoría de seguridad en solo lectura: debe devolver 0 filas
+      - name: Auditoría de seguridad (supabase/checks/audit.sql)
+        run: |
+          DB_URL="$(npx supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')"
+          rows="$(psql "$DB_URL" -tA -f supabase/checks/audit.sql)"
+          if [ -n "$rows" ]; then echo "$rows"; exit 1; fi
+      # Los tipos de src/types/database.ts deben corresponder a las migraciones.
+      # continue-on-error: es la primera vez que se compara contra el generador del stack real; si falla,
+      # correr `npm run db:types`, commitear el resultado y quitar esta línea.
+      - name: Tipos generados al día
+        continue-on-error: true
+        run: |
+          npm run db:types
+          git diff --exit-code -- src/types/database.ts
+      - if: always()
+        run: npx supabase stop

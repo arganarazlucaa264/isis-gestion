@@ -1,0 +1,7 @@
+dist
+coverage
+node_modules
+package-lock.json
+src/types/database.ts
+supabase/config.toml
+docs/arquitectura.pdf
